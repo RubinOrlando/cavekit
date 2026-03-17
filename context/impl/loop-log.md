@@ -77,3 +77,11 @@
 - **Files:** internal/tmux/status.go, internal/tmux/status_test.go
 - **Validation:** Build P, Tests 5/5 P, Acceptance 3/3
 - **Next:** T-012 — Git diff stats
+
+### Iteration 11 — 2026-03-17
+- **Task:** T-012 — Git diff stats (files changed, insertions, deletions)
+- **Tier:** 1
+- **Status:** DONE
+- **Files:** internal/worktree/diff.go, internal/worktree/diff_test.go
+- **Validation:** Build P, Tests 5/5 P, Acceptance 3/3
+- **Next:** T-013 — Worktree discovery
