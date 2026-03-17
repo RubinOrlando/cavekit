@@ -3,6 +3,7 @@ package tui
 
 import (
 	"context"
+	osexec "os/exec"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -43,6 +44,9 @@ type instanceCreatedMsg struct {
 	inst *session.Instance
 	err  error
 }
+
+// attachFinishedMsg is sent when tmux attach returns.
+type attachFinishedMsg struct{ err error }
 
 // App is the main bubbletea model.
 type App struct {
@@ -189,7 +193,9 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case ActionConfirmNo:
 			a.overlay.Hide()
 		case ActionOpen:
-			// Handled via tmux attach — will be implemented in T-045
+			if sel := a.instanceList.Selected(); sel != nil && sel.TmuxSession != "" {
+				return a, a.attachCmd(sel.TmuxSession)
+			}
 		case ActionPush:
 			if sel := a.instanceList.Selected(); sel != nil && sel.WorktreePath != "" {
 				a.overlay.Show(OverlayConfirmation, "Push Branch", "Push '"+sel.Title+"' branch to remote?")
@@ -214,6 +220,9 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		}
+
+	case attachFinishedMsg:
+		// TUI resumes after tmux detach — nothing special to do
 
 	case instanceCreatedMsg:
 		if msg.err == nil && msg.inst != nil {
@@ -341,6 +350,15 @@ func (a App) View() string {
 func (a *App) SetInstances(instances []*session.Instance) {
 	a.instances = instances
 	a.instanceList.SetInstances(instances)
+}
+
+// attachCmd suspends the TUI and attaches to a tmux session.
+// Uses tea.Exec to hand control to tmux, then resumes the TUI on detach.
+func (a *App) attachCmd(sessionName string) tea.Cmd {
+	c := osexec.Command("tmux", "attach-session", "-t", sessionName)
+	return tea.ExecProcess(c, func(err error) tea.Msg {
+		return attachFinishedMsg{err: err}
+	})
 }
 
 func (a *App) createInstanceCmd(name string) tea.Cmd {

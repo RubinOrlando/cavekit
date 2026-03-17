@@ -6,3 +6,11 @@
 - **Validation:** Build P, Tests all P, Acceptance: tick captures content P, tick refreshes diff P, tick updates progress P, tick runs auto-yes P, tick detects status P, tabs instantiated and piped P, scroll handling P, --autoyes flag P, status progress P, program preflight P
 - **Note:** T-043, T-044, T-048, T-051, T-052, T-054, T-056 all implemented in single iteration because they are tightly coupled (can't wire tick without tab instances; scroll actions need diff tab wiring; CLI needs to pass autoyes to Run)
 - **Next:** T-045 — Handle ActionOpen (tmux attach/detach)
+
+### Iteration 2 — 2026-03-17
+- **Task:** T-045 — Handle ActionOpen: tmux attach/detach with TUI suspend
+- **Tier:** 6
+- **Status:** DONE
+- **Files:** internal/tui/app.go (attachCmd, attachFinishedMsg, ActionOpen handler)
+- **Validation:** Build P, Tests P, Acceptance: Enter attaches to tmux P, tea.ExecProcess suspends TUI P, resume on detach P
+- **Next:** T-046 — Handle ActionPush
