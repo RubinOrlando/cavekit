@@ -6,6 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/julb/blueprint-monitor/internal/session"
 )
 
 // Tab represents the active content tab.
@@ -41,6 +42,15 @@ type App struct {
 	activeTab     Tab
 	selectedIndex int
 
+	// Components
+	instanceList *InstanceList
+	tabContent   *TabContent
+	bottomMenu   *BottomMenu
+	overlay      *Overlay
+
+	// Data
+	instances []*session.Instance
+
 	// Set to true when we need to quit
 	quitting bool
 }
@@ -48,7 +58,11 @@ type App struct {
 // NewApp creates a new TUI application model.
 func NewApp() App {
 	return App{
-		activeTab: TabPreview,
+		activeTab:    TabPreview,
+		instanceList: NewInstanceList(),
+		tabContent:   NewTabContent(),
+		bottomMenu:   NewBottomMenu(),
+		overlay:      NewOverlay(),
 	}
 }
 
@@ -69,29 +83,63 @@ func tickCmd() tea.Cmd {
 func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "q", "ctrl+c":
+		key := msg.String()
+		action := MapKey(key, a.overlay.IsActive(), a.overlay.Active)
+
+		switch action {
+		case ActionQuit:
 			a.quitting = true
 			return a, tea.Quit
-		case "tab":
+		case ActionSwitchTab:
 			a.activeTab = (a.activeTab + 1) % 3
-		case "j", "down":
+			a.tabContent.SetActiveTab(a.activeTab)
+		case ActionNavigateDown:
 			a.selectedIndex++
-		case "k", "up":
+			a.instanceList.SetSelected(a.selectedIndex)
+			a.selectedIndex = a.instanceList.SelectedIndex()
+		case ActionNavigateUp:
 			if a.selectedIndex > 0 {
 				a.selectedIndex--
+			}
+			a.instanceList.SetSelected(a.selectedIndex)
+			a.selectedIndex = a.instanceList.SelectedIndex()
+		case ActionHelp:
+			if a.overlay.Active == OverlayHelp {
+				a.overlay.Hide()
+			} else {
+				a.overlay.Show(OverlayHelp, "", "")
+			}
+		case ActionCancel:
+			a.overlay.Hide()
+		case ActionNew:
+			a.overlay.Show(OverlayTextInput, "New Instance", "Enter frontier name:")
+		case ActionKill:
+			if sel := a.instanceList.Selected(); sel != nil {
+				a.overlay.Show(OverlayConfirmation, "Kill Instance", "Kill '"+sel.Title+"'?")
 			}
 		}
 
 	case tea.WindowSizeMsg:
 		a.width = msg.Width
 		a.height = msg.Height
+		a.updateLayout()
 
 	case tickMsg:
 		return a, tickCmd()
 	}
 
 	return a, nil
+}
+
+func (a *App) updateLayout() {
+	leftWidth := max(int(float64(a.width)*LeftPanelRatio), MinLeftWidth)
+	rightWidth := a.width - leftWidth - 2
+	contentHeight := a.height - MenuHeight - 2
+
+	a.instanceList.SetSize(leftWidth-2, contentHeight-2)
+	a.tabContent.SetSize(rightWidth-2, contentHeight-2)
+	a.bottomMenu.SetWidth(a.width)
+	a.overlay.SetSize(a.width, a.height)
 }
 
 // View implements tea.Model.
@@ -103,82 +151,39 @@ func (a App) View() string {
 		return "Initializing..."
 	}
 
-	// Calculate layout dimensions
 	leftWidth := max(int(float64(a.width)*LeftPanelRatio), MinLeftWidth)
-	rightWidth := a.width - leftWidth - 2 // account for borders
-	contentHeight := a.height - MenuHeight - 2 // menu + borders
+	rightWidth := a.width - leftWidth - 2
+	contentHeight := a.height - MenuHeight - 2
 
 	// Render panels
-	left := a.renderLeftPanel(leftWidth, contentHeight)
-	right := a.renderRightPanel(rightWidth, contentHeight)
-	menu := a.renderMenu()
+	left := LeftPanelStyle.
+		Width(leftWidth).
+		Height(contentHeight).
+		Render(a.instanceList.View())
+
+	right := RightPanelStyle.
+		Width(rightWidth).
+		Height(contentHeight).
+		Render(a.tabContent.View())
+
+	menu := a.bottomMenu.View()
 
 	// Compose layout
 	panels := lipgloss.JoinHorizontal(lipgloss.Top, left, right)
-	return lipgloss.JoinVertical(lipgloss.Left, panels, menu)
-}
+	base := lipgloss.JoinVertical(lipgloss.Left, panels, menu)
 
-func (a App) renderLeftPanel(width, height int) string {
-	content := "No instances yet.\n\nPress 'n' to create one."
-	return LeftPanelStyle.
-		Width(width).
-		Height(height).
-		Render(content)
-}
-
-func (a App) renderRightPanel(width, height int) string {
-	// Tab bar
-	tabs := a.renderTabBar()
-
-	content := "Select an instance to preview."
-	return RightPanelStyle.
-		Width(width).
-		Height(height).
-		Render(tabs + "\n" + content)
-}
-
-func (a App) renderTabBar() string {
-	var tabs []string
-	for _, tab := range []Tab{TabPreview, TabDiff, TabTerminal} {
-		if tab == a.activeTab {
-			tabs = append(tabs, ActiveTabStyle.Render(tab.String()))
-		} else {
-			tabs = append(tabs, InactiveTabStyle.Render(tab.String()))
-		}
-	}
-	return lipgloss.JoinHorizontal(lipgloss.Top, tabs...)
-}
-
-func (a App) renderMenu() string {
-	items := []struct{ key, desc string }{
-		{"n", "new"},
-		{"D", "kill"},
-		{"Enter", "open"},
-		{"p", "push"},
-		{"tab", "switch tab"},
-		{"?", "help"},
-		{"q", "quit"},
+	// Overlay on top
+	if a.overlay.IsActive() {
+		return a.overlay.View()
 	}
 
-	var parts []string
-	for _, item := range items {
-		parts = append(parts,
-			MenuKeyStyle.Render(item.key)+" "+MenuDescStyle.Render(item.desc))
-	}
-
-	return MenuStyle.Render(lipgloss.JoinHorizontal(lipgloss.Top,
-		joinWithSep(parts, " │ ")))
+	return base
 }
 
-func joinWithSep(parts []string, sep string) string {
-	result := ""
-	for i, p := range parts {
-		if i > 0 {
-			result += sep
-		}
-		result += p
-	}
-	return result
+// SetInstances updates the displayed instances.
+func (a *App) SetInstances(instances []*session.Instance) {
+	a.instances = instances
+	a.instanceList.SetInstances(instances)
 }
 
 // Run starts the TUI application.

@@ -19,3 +19,5 @@ last_edited: "2026-03-17T00:00:00Z"
 | T-033 | DONE | Progress display via InstanceList rendering TasksDone/TasksTotal from session.UpdateProgress. |
 | T-035 | DONE | Frontier picker: list available frontiers, multi-select, done strikethrough. internal/tui/frontierpicker.go. |
 | T-036 | DONE | Key handling: MapKey routes all keypresses to actions, respects overlay state. internal/tui/keyhandler.go. |
+| T-037 | DONE | Wire app.Update to route all key events via MapKey to components. |
+| T-038 | DONE | Wire app.View to compose InstanceList + TabContent + BottomMenu + Overlay. |

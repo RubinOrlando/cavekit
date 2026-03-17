@@ -30,7 +30,7 @@ func RenderMenu(items []MenuItem, width int) string {
 			MenuKeyStyle.Render(item.Key)+" "+MenuDescStyle.Render(item.Desc))
 	}
 
-	content := joinWithSep(parts, " │ ")
+	content := joinMenuParts(parts, " │ ")
 	return MenuStyle.Width(width).Render(content)
 }
 

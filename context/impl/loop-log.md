@@ -176,3 +176,11 @@
 - **Validation:** Build P, Tests all P, Acceptance all met
 - **Milestone:** Tier 3 COMPLETE (36/42 tasks done)
 - **Next:** Tier 4 — T-037, T-038, T-039 (wiring and CLI)
+
+### Iteration 23 — 2026-03-17
+- **Task:** T-037, T-038, T-039 (Tier 4) + T-040, T-041, T-042 (Tier 5)
+- **Tier:** 4+5
+- **Status:** DONE
+- **Files:** internal/tui/app.go (rewired), internal/tui/menu.go (fix), cmd/blueprint/main.go (full CLI)
+- **Validation:** Build P, Tests all P, binary compiles and runs
+- **Milestone:** ALL TIERS COMPLETE (42/42 tasks done)
