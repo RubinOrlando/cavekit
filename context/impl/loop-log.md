@@ -13,3 +13,11 @@
 - **Files:** internal/exec/executor.go, internal/exec/mock.go, internal/exec/executor_test.go
 - **Validation:** Build P, Tests 5/5 P, Acceptance 3/3
 - **Next:** T-007 — Session instance model and status enum
+
+### Iteration 3 — 2026-03-17
+- **Task:** T-007 — Session instance model and status enum
+- **Tier:** 0
+- **Status:** DONE
+- **Files:** internal/session/instance.go, internal/session/instance_test.go
+- **Validation:** Build P, Tests 6/6 P, Acceptance 4/4
+- **Next:** T-002 — Tmux session create/kill/exists
