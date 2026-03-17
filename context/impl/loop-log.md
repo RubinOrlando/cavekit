@@ -150,3 +150,11 @@
 - **Files:** internal/session/lifecycle.go, internal/session/lifecycle_test.go
 - **Validation:** Build P, Tests 4/4 P, Acceptance 5/5
 - **Next:** T-021 — Session persistence (save/load JSON)
+
+### Iteration 20 — 2026-03-17
+- **Task:** T-021 (persistence), T-022 (auto-yes), T-023 (progress), T-028 (branch push)
+- **Tier:** 2
+- **Status:** DONE
+- **Files:** internal/session/persistence.go, autoyes.go, progress.go, internal/worktree/push.go + tests
+- **Validation:** Build P, Tests all P, Acceptance all met
+- **Next:** T-024 — Instance list component, T-025 — Tabbed content, T-026 — Bottom menu, T-027 — Overlays
