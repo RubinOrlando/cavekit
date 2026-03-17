@@ -158,3 +158,12 @@
 - **Files:** internal/session/persistence.go, autoyes.go, progress.go, internal/worktree/push.go + tests
 - **Validation:** Build P, Tests all P, Acceptance all met
 - **Next:** T-024 — Instance list component, T-025 — Tabbed content, T-026 — Bottom menu, T-027 — Overlays
+
+### Iteration 21 — 2026-03-17
+- **Task:** T-024 (instance list), T-025 (tabbed content), T-026 (bottom menu), T-027 (overlays)
+- **Tier:** 2
+- **Status:** DONE
+- **Files:** internal/tui/instancelist.go, tabs.go, menu.go, overlay.go, components_test.go
+- **Validation:** Build P, Tests 19/19 P, Acceptance all met
+- **Milestone:** Tier 2 COMPLETE (28/42 tasks done)
+- **Next:** Tier 3 tasks
