@@ -37,3 +37,11 @@
 - **Files:** internal/tmux/capture.go, internal/tmux/capture_test.go
 - **Validation:** Build P, Tests 9/9 P, Acceptance 3/3
 - **Next:** T-004 — Git worktree create/detect/remove
+
+### Iteration 6 — 2026-03-17
+- **Task:** T-004 — Git worktree create/detect/remove
+- **Tier:** 0
+- **Status:** DONE
+- **Files:** internal/worktree/worktree.go, internal/worktree/worktree_test.go
+- **Validation:** Build P, Tests 6/6 P, Acceptance 5/5
+- **Next:** T-005 — Frontier file discovery and name derivation
