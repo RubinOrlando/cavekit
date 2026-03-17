@@ -167,3 +167,12 @@
 - **Validation:** Build P, Tests 19/19 P, Acceptance all met
 - **Milestone:** Tier 2 COMPLETE (28/42 tasks done)
 - **Next:** Tier 3 tasks
+
+### Iteration 22 — 2026-03-17
+- **Task:** T-029, T-030, T-031, T-032, T-033, T-034, T-035, T-036 (all Tier 3)
+- **Tier:** 3
+- **Status:** DONE
+- **Files:** internal/tui/{preview,difftab,terminaltab,frontierpicker,keyhandler}.go, internal/session/stagger.go, tier3_test.go
+- **Validation:** Build P, Tests all P, Acceptance all met
+- **Milestone:** Tier 3 COMPLETE (36/42 tasks done)
+- **Next:** Tier 4 — T-037, T-038, T-039 (wiring and CLI)

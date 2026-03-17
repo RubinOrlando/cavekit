@@ -11,3 +11,4 @@ last_edited: "2026-03-17T00:00:00Z"
 | T-021 | DONE | Save/Load JSON state at ~/.blueprint-monitor/state.json. internal/session/persistence.go. |
 | T-022 | DONE | AutoYes: monitor pane for permission/trust prompts, auto-send Enter. internal/session/autoyes.go. |
 | T-023 | DONE | Progress integration: UpdateProgress reads frontier+impl to populate instance fields. internal/session/progress.go. |
+| T-034 | DONE | StaggeredLauncher: configurable delay between instance launches, first immediate. internal/session/stagger.go. |
