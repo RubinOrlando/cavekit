@@ -303,15 +303,23 @@ Gap analysis is not a one-time activity. Run it:
 
 ## Integration with Other Skills
 
-### With `superpowers:brainstorming`
+### Collaborative Design in the Draft Phase
 
-Use brainstorming during the Draft phase to explore requirements you may not have considered. Brainstorm first, then formalize the output into blueprint format with acceptance criteria.
+The Draft phase (`/bp:draft`) now embeds brainstorming principles directly. When running in interactive mode (no arguments), the drafter follows a collaborative design process before generating any files:
 
-**Pattern:**
-1. Brainstorm the domain with the agent
-2. Capture insights as draft requirements
-3. Formalize each requirement with acceptance criteria
-4. Add to the blueprint using the template
+1. **Explore project context** — check existing files, docs, commits before asking questions
+2. **Ask clarifying questions one at a time** — understand purpose, constraints, success criteria
+3. **Propose 2-3 domain decomposition approaches** — with tradeoffs and a recommendation
+4. **Present the design incrementally** — section by section, get approval per domain
+5. **Generate blueprints only after design approval** — formalize with acceptance criteria
+6. **Blueprint review loop** — automated reviewer checks quality, up to 3 iterations
+7. **User review gate** — explicit approval before transitioning to Architect phase
+
+This process applies to EVERY project regardless of perceived simplicity. The design can be short for simple projects, but it must happen.
+
+**Visual companion:** For projects involving visual elements (UI, architecture diagrams), the Draft phase can use a browser-based visual companion to show mockups and diagrams during the design conversation. See `references/visual-companion.md`.
+
+**YAGNI enforcement:** During the design conversation and blueprint generation, actively strip requirements the user did not ask for. Smaller blueprints are better blueprints.
 
 ### With `bp:validation-first`
 
