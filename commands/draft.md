@@ -56,24 +56,171 @@ Wait for the user's response. If they decline, proceed with text-only. If they a
 - **Use the browser** for: mockups, wireframes, architecture diagrams, side-by-side visual comparisons
 - **Use the terminal** for: requirements questions, conceptual choices, tradeoff lists, scope decisions
 
-#### 3b: Clarifying Questions — One at a Time
+#### 3b: Scoping Questions
 
-Ask questions **one at a time** to understand what the user is building. Do NOT dump multiple questions in a single message.
+Ask **1–2 initial questions** to understand the project's purpose, scope, and technology landscape. These are high-level — enough to assess whether deep research is warranted.
+
+- Prefer **multiple choice** when possible
+- Focus on: **what** you're building, **who** it's for, **what technology** is involved
+- Open-ended is fine when the topic needs exploration
+
+**Scope check:** If the request describes multiple independent subsystems (e.g., "build a platform with chat, file storage, billing, and analytics"), flag this immediately. Help the user decompose into sub-projects first. Each sub-project gets its own draft cycle.
+
+#### 3c: Check for Existing Research Brief
+
+After scoping, check for an existing research brief:
+
+1. Look in `context/refs/` for `research-brief-*.md` files relevant to this project
+2. If a **fresh brief exists** (check the `Generated:` date in the brief):
+   ```
+   Found research brief: research-brief-{topic}.md ({age} ago). Use it? [Y/n/rerun]
+   ```
+   - **Y**: Load the brief, skip to 3e
+   - **n**: Ignore the brief, skip to 3e
+   - **rerun**: Run fresh research (3d)
+
+3. If **no brief exists**, assess whether research is warranted based on the scoping conversation:
+
+   **Research IS recommended when any of:**
+   - The project involves technology you have low confidence about (novel frameworks, niche domains)
+   - The project is brownfield and the codebase is medium-to-large
+   - The user's description implies architectural decisions with multiple viable approaches
+   - The domain has fast-moving best practices (security, AI/ML, web frameworks)
+
+   **Research is NOT recommended when:**
+   - The project is a small config change or bug fix
+   - The technology stack is well-understood and you have high confidence
+   - The user has already provided comprehensive reference materials in `context/refs/`
+   - The user explicitly asked for a quick draft
+
+4. If research is warranted, prompt:
+   ```
+   This project touches {topics} which would benefit from deep research —
+   current best practices, library landscape, and {codebase analysis if brownfield}.
+   This typically takes 30-60 seconds and produces a research brief.
+
+   Run deep research? [Y/n]
+   ```
+   - **Y**: Proceed to 3d
+   - **n**: Skip to 3e (no penalty, no nag)
+
+#### 3d: Research Phase
+
+If research was triggered in 3c, run the deep research pipeline. Generate a topic slug from the project description (kebab-case, 2-4 words).
+
+**1. Assess project size** — count source files to determine codebase agent count:
+
+| File count | Codebase agents |
+|-----------|----------------|
+| 0 (greenfield) | 0 |
+| 1–20 | 1 |
+| 21–200 | 2 |
+| 201+ | 3–4 |
+
+Use standard depth (3 web agents).
+
+**2. Generate research plan:**
+- Use fixed categories (codebase: architecture, patterns, dependencies, tests; web: library-landscape, best-practices, existing-art, pitfalls)
+- Generate 2–6 project-specific sub-questions from the scoping conversation
+- Assign sub-questions to the most relevant category agent
+
+**3. Create research directory:**
+- `context/refs/research-{topic}/findings-board.md` with initial empty structure
+
+**4. Dispatch wave 1 in parallel** (all codebase agents + web agents for library-landscape and existing-art):
+
+Each codebase agent (subagent_type: `Explore`, model: `sonnet`):
+```
+Agent(
+  subagent_type: "Explore",
+  model: "sonnet",
+  description: "Research codebase {categories}",
+  prompt: "ROLE: Codebase researcher ({categories}) for: {description}
+  RESEARCH QUESTIONS: {assigned questions}
+  Explore at 'medium' thoroughness. Answer with file:line evidence.
+  OUTPUT: ## Agent: codebase-{categories} — findings with Evidence, Implication, Confidence"
+)
+```
+
+Each wave 1 web agent (subagent_type: `general-purpose`, model: `sonnet`):
+```
+Agent(
+  subagent_type: "general-purpose",
+  model: "sonnet",
+  description: "Research web {categories}",
+  prompt: "ROLE: Web researcher ({categories}) for: {description}
+  RESEARCH QUESTIONS: {assigned questions}
+  Search web (2-3 searches per question). Prefer official docs, GitHub, engineering blogs.
+  Findings from 2024+ only. Include source URLs and adoption metrics.
+  OUTPUT: ## Agent: {categories} — findings with [source: URL] and Confidence"
+)
+```
+
+**5. Collect wave 1** — write each agent's output to `context/refs/research-{topic}/raw-{slug}.md`, compile findings board.
+
+**6. Dispatch wave 2 in parallel** (web agents for best-practices and pitfalls, with findings board in prompt):
+```
+Agent(
+  subagent_type: "general-purpose",
+  model: "sonnet",
+  description: "Research web {categories}",
+  prompt: "ROLE: Web researcher ({categories}) for: {description}
+  SHARED FINDINGS: {findings-board.md contents}
+  Skip answered questions. Go deeper on gaps. Flag contradictions with 'Conflict:' prefix.
+  OUTPUT: ## Agent: {categories} — findings with [source: URL] and Confidence"
+)
+```
+
+**7. Collect wave 2** — write raw findings, update findings board.
+
+**8. Dispatch synthesizer:**
+```
+Agent(
+  subagent_type: "general-purpose",
+  model: "opus",
+  description: "Synthesize research findings",
+  prompt: "ROLE: Research synthesizer for: {description}
+  RAW FINDINGS: {all raw-*.md contents}
+  FINDINGS BOARD: {findings-board.md contents}
+  Cross-validate, resolve contradictions, filter tangential findings.
+  OUTPUT: Follow research brief format — Summary, Key Findings (Architecture & Patterns,
+  Library Landscape, Best Practices, Existing Art, Pitfalls), Contradictions & Open Questions,
+  Codebase Context (if applicable), Implications for Design, Sources."
+)
+```
+
+**9. Write brief** to `context/refs/research-brief-{topic}.md`.
+
+**10. Present summary:**
+```
+Research complete ({N} agents). Key findings:
+- {3-5 bullet points}
+
+Open questions: {list, or "none"}
+
+Full brief: context/refs/research-brief-{topic}.md
+```
+
+#### 3e: Clarifying Questions — One at a Time
+
+Continue asking questions **one at a time** to fill in the remaining design picture. Do NOT dump multiple questions in a single message.
 
 - Prefer **multiple choice** when possible — easier to answer than open-ended
-- Focus on understanding: **purpose**, **constraints**, **success criteria**
-- Open-ended questions are fine when the topic needs exploration
+- Focus on: **core requirements**, **scope boundaries**, **user journeys**, **constraints**, **success criteria**
 
-**Scope check:** Before going deep on details, assess scope. If the request describes multiple independent subsystems (e.g., "build a platform with chat, file storage, billing, and analytics"), flag this immediately. Help the user decompose into sub-projects first. Each sub-project gets its own draft cycle.
+**If research was done**, use findings to inform questions:
+- Open questions from the research brief become clarifying questions
+- Findings inform multiple-choice options (e.g., "Research shows OAuth 2.1 + PKCE is current standard, and your codebase already has passport.js — build on that or switch?")
+- Don't re-ask what research already answered
 
-Continue asking questions until you have a clear picture of:
+Continue until you have a clear picture of:
 - What the system must do (core requirements)
 - What it must NOT do (scope boundaries)
 - Who uses it and how (user journeys / entry points)
 - What constraints exist (technical, organizational, timeline)
 - What success looks like (how do we know it works?)
 
-#### 3c: Propose 2-3 Approaches
+#### 3f: Propose 2-3 Approaches
 
 Before settling on a design, propose **2-3 different domain decomposition approaches** with tradeoffs:
 
@@ -81,6 +228,7 @@ Before settling on a design, propose **2-3 different domain decomposition approa
 - Present alternatives with honest pros/cons
 - Consider: coupling, complexity, parallelizability, testability
 - Be ready to combine elements from different approaches based on feedback
+- **If research was done**, back approaches with evidence (e.g., "Approach A uses chevrotain — research confirms 3x faster than nearley for grammars of this size")
 
 Example:
 > **Approach A (recommended): Three domains — Auth, API, Storage**
@@ -92,7 +240,7 @@ Example:
 > **Approach C: Five fine-grained domains**
 > Pros: Maximum parallelism. Cons: Over-decomposed, too many cross-references for this scope.
 
-#### 3d: Present Design Incrementally
+#### 3g: Present Design Incrementally
 
 Once the user picks an approach, present the design **section by section**. Scale each section to its complexity — a few sentences if straightforward, more detail if nuanced.
 
@@ -187,6 +335,7 @@ If `--filter` is set, only generate blueprints for domains matching the filter p
 - Explicitly state what is out of scope
 - Use R-numbered requirements (R1, R2, R3...)
 - **YAGNI** — do not add requirements the user did not ask for
+- If research was done, blueprints may reference the brief as source material: "See `context/refs/research-brief-{topic}.md` for library evaluation"
 
 ### Brownfield-Specific Rules
 

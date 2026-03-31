@@ -9,7 +9,8 @@ description: Show Blueprint commands and usage
 
 ```
 /bp:init        →  bootstrap context hierarchy (optional, /bp:draft does this too)
-/bp:draft       →  write blueprints (the WHAT)
+/bp:research    →  deep multi-agent research (standalone, or integrated into /bp:draft)
+/bp:draft       →  write blueprints (the WHAT) — offers research if warranted
 /bp:architect   →  generate site (the ORDER)
 /bp:build       →  ralph loop (the BUILD)
 /bp:inspect     →  gap analysis + peer review (the CHECK)
@@ -34,6 +35,20 @@ Streamlined draft + architect (no interactive Q&A, no user gates) followed by th
 ```
 
 Creates the full context hierarchy for a Blueprint project. Idempotent — only creates what's missing. Detects legacy `context/sites/` layout and offers migration to `context/plans/`.
+
+### `/bp:research` — Deep Research
+
+```bash
+/bp:research "build a Verse compiler targeting WASM"           # standard depth
+/bp:research "add real-time collab" --depth deep               # exhaustive
+/bp:research "refactor auth layer" --depth quick               # fast scan
+/bp:research "new React dashboard" --web-only                  # greenfield, skip codebase
+/bp:research "optimize DB queries" --codebase-only             # air-gapped, skip web
+```
+
+Runs parallel multi-agent research (codebase exploration + web search) and produces a research brief in `context/refs/research-brief-{topic}.md`. Dispatches 2-8 agents depending on project size and depth. Two-pass synthesis cross-validates findings and resolves contradictions.
+
+Also integrated into `/bp:draft` — when the draft phase detects a project that would benefit from research, it offers to run the pipeline inline before design Q&A.
 
 ### `/bp:draft` — Write Blueprints
 

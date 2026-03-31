@@ -129,23 +129,31 @@ This registers the Blueprint plugin with Claude Code, syncs it into your local C
 
 ## How It Works
 
-Blueprint follows four phases — **Draft, Architect, Build, Inspect** — each driven by a slash command inside Claude Code.
+Blueprint follows four phases — **Draft, Architect, Build, Inspect** — each driven by a slash command inside Claude Code. An optional **Research** phase grounds the design in real evidence before blueprints are written.
 
 ```
-  DRAFT            ARCHITECT           BUILD                INSPECT
-  ─────            ─────────           ─────                ───────
-  "What are we     Break into tasks,   Auto-parallel:       Gap analysis:
-   building?"      map dependencies,    /bp:build            built vs.
-                   organize into        groups work          intended.
-  Produces:        tiered build site    into adaptive        Peer review.
-  blueprints       + dependency graph   subagent packets     Trace to specs.
-  with R-numbered                       tier by tier
-  requirements     Produces:                                 Produces:
-                   task graph           Codex reviews        findings report
-  Codex challenges                      every tier gate
-  the design                            (speculative +
-                                        synchronous)
+  RESEARCH         DRAFT            ARCHITECT           BUILD                INSPECT
+  ────────         ─────            ─────────           ─────                ───────
+  (optional)       "What are we     Break into tasks,   Auto-parallel:       Gap analysis:
+  Multi-agent       building?"      map dependencies,    /bp:build            built vs.
+  codebase +                        organize into        groups work          intended.
+  web research     Produces:        tiered build site    into adaptive        Peer review.
+                   blueprints       + dependency graph   subagent packets     Trace to specs.
+  Produces:        with R-numbered                       tier by tier
+  research brief   requirements     Produces:                                 Produces:
+  in context/refs                   task graph           Codex reviews        findings report
+                   Codex challenges                      every tier gate
+                   the design                            (speculative +
+                                                         synchronous)
 ```
+
+### 0. Research — ground the design (optional)
+
+```
+/bp:research "build a Verse compiler targeting WASM"
+```
+
+Dispatches 2–8 parallel subagents to explore the codebase and search the web for current best practices, library landscape, reference implementations, and common pitfalls. A synthesizer agent cross-validates findings and produces a research brief in `context/refs/`. Research is also offered inline during `/bp:draft` when the project involves unfamiliar technology or architectural decisions with multiple viable approaches.
 
 ### 1. Draft — define the what
 
@@ -154,6 +162,8 @@ Blueprint follows four phases — **Draft, Architect, Build, Inspect** — each 
 ```
 
 You describe what you're building in natural language. Blueprint decomposes it into **domain blueprints** — structured documents with numbered requirements (R1, R2, ...) and testable acceptance criteria. Each blueprint is stack-independent and human-readable.
+
+When the project would benefit from it, the draft phase offers to run [deep research](#0-research--ground-the-design-optional) before design Q&A — grounding clarifying questions and approach proposals in real evidence rather than LLM priors.
 
 After the internal reviewer approves, blueprints are sent to Codex for a [design challenge](#design-challenge--catch-spec-flaws-before-building) — an adversarial review that catches decomposition flaws, missing requirements, and ambiguous criteria before any code is written.
 
@@ -418,7 +428,8 @@ All Codex settings live in `.blueprint/config`:
 
 | Command | Phase | Description |
 |---------|-------|-------------|
-| `/bp:draft` | Draft | Decompose requirements into domain blueprints |
+| `/bp:research` | Research | Deep multi-agent research — codebase + web, produces research brief |
+| `/bp:draft` | Draft | Decompose requirements into domain blueprints (offers research if warranted) |
 | `/bp:architect` | Architect | Generate a tiered build site from blueprints |
 | `/bp:build` | Build | Auto-parallel build — dispatches independent tasks concurrently, progresses through tiers autonomously |
 | `/bp:inspect` | Inspect | Gap analysis + peer review against blueprints |
@@ -453,6 +464,8 @@ context/
 │   ├── loop-log.md
 │   └── archive/
 └── refs/                     # Reference materials (PRDs, API docs)
+    ├── research-brief-{topic}.md   # Synthesized research brief
+    └── research-{topic}/           # Raw findings + findings board
 
 scripts/
 ├── codex-detect.sh           # Codex binary and plugin detection
@@ -479,7 +492,7 @@ Blueprint is built on a simple observation: LLMs are non-deterministic, but soft
 | **Implementation tracking** | Lab notebook — what was tried, what worked, what failed |
 | **Revision** | Update the hypothesis — trace bugs back to blueprints |
 
-The plugin ships with 8 specialized agents and 13 deep-dive skills covering the full methodology. When Codex is installed, the system operates as a **dual-model architecture** — Claude builds and Codex reviews — catching classes of errors that single-model self-review cannot detect.
+The plugin ships with 8 specialized agents, a multi-agent research system, and 13 deep-dive skills covering the full methodology. When Codex is installed, the system operates as a **dual-model architecture** — Claude builds and Codex reviews — catching classes of errors that single-model self-review cannot detect.
 
 <details>
 <summary><strong>View all skills</strong></summary>
