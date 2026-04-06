@@ -1,5 +1,5 @@
 <p align="center">
-  <img src=".codex-plugin/logo.svg" alt="Cavekit" height="80">
+  🪨
 </p>
 
 <h1 align="center">cavekit</h1>
