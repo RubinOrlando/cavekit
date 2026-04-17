@@ -420,6 +420,60 @@ Cavekit works the same. Codex makes it harder to ship bad specs and bad code.
 
 ---
 
+## Autonomous Runtime
+
+`/ck:make` is not a single agent turn — it is an autonomous loop. A Claude Code
+**Stop hook** drives the session iteration by iteration until every task in
+the build site is complete, or a budget trips a circuit breaker.
+
+The runtime lives entirely in the plugin directory (no daemon, no server):
+
+- **`hooks/stop-hook.sh`** — state-machine driver. Fires on every Stop event,
+  routes the next prompt, and returns `{"decision":"block","reason":...}` so
+  the session continues.
+- **`hooks/token-monitor.sh`** — PostToolUse budget guard. Records per-task
+  token usage; warns at 80%, halts the loop at 100%.
+- **`hooks/tool-cache.js` / `tool-cache-store.js`** — 120s TTL cache for
+  read-only commands (`git status`, `ls`, `Read`, `Grep`, `Glob`).
+- **`hooks/test-output-filter.js`** — condenses test output around failures
+  so long runners do not blow the context.
+- **`hooks/auto-backprop.js`** — on test failure, writes a flag file. The
+  next iteration prepends a backpropagation directive that traces the bug
+  back to the kit before patching code.
+- **`hooks/progress-tracker.js`** — zero-stdout snapshot writer for the
+  `/ck:watch` dashboard.
+- **`scripts/cavekit-tools.cjs`** — orchestration engine: state machine, lock
+  with heartbeat, token ledger, task registry, routing, capability discovery,
+  checkpoints, and artifact summaries. Zero runtime deps.
+- **`scripts/cavekit-router.cjs`** — model-tier router. Scores tasks across
+  five axes, maps to haiku/sonnet/opus within each role's band, demotes under
+  budget pressure.
+
+All runtime state lives under `<project>/.cavekit/`:
+
+```
+.cavekit/
+├── config.json                    # Structured runtime config
+├── state.md                       # YAML-frontmatter phase + current task
+├── .loop.json                     # Loop sentinel (activates stop-hook)
+├── .loop.lock                     # Heartbeat-backed single-writer lock
+├── token-ledger.json              # Session + per-task token tallies
+├── task-status.json               # Authoritative task registry
+├── capabilities.json              # Detected MCP/plugin/CLI tools
+├── .progress.json                 # Dashboard snapshot (for /ck:watch)
+├── .auto-backprop-pending.json    # Flag file from failed tests
+├── history/backprop-log.md        # Append-only backprop trace log
+└── tool-cache/                    # Read-only tool result cache
+```
+
+To end the loop cleanly, agents emit the sentinel
+`<promise>CAVEKIT_COMPLETE</promise>` on its own line. The hook sees it,
+tears down the loop, and lets the session stop normally.
+
+Debug with `CAVEKIT_DEBUG=1`. Recover from a crash with `/ck:resume`.
+
+---
+
 ## Configuration
 
 Settings live in two places:
@@ -441,6 +495,20 @@ Settings live in two places:
 | `speculative_review_timeout` | seconds | `300` | Max wait for speculative results |
 | `caveman_mode` | `on` `off` | `on` | Token-compressed output (~75% savings) |
 | `caveman_phases` | comma-separated | `build,inspect` | Which phases use caveman-speak |
+| `session_budget` | integer tokens | `500000` | Cap on total loop tokens before auto-halt |
+| `max_iterations` | integer | `60` | Cap on stop-hook iterations per loop |
+| `task_budget_quick` | integer | `8000` | Per-task token budget for `depth: quick` |
+| `task_budget_standard` | integer | `20000` | Per-task token budget for `depth: standard` |
+| `task_budget_thorough` | integer | `45000` | Per-task token budget for `depth: thorough` |
+| `auto_backprop` | `on` `off` | `on` | Trigger backpropagation on test failure |
+| `tool_cache` | `on` `off` | `on` | Cache read-only tool results (git status, ls, Read, Grep, Glob) |
+| `tool_cache_ttl_ms` | ms | `120000` | TTL for cached tool results |
+| `test_filter` | `on` `off` | `on` | Condense test-runner output around failures |
+| `progress_tracker` | `on` `off` | `on` | Write `.cavekit/.progress.json` dashboard snapshot |
+| `parallelism_max_agents` | integer | `3` | Max concurrent subagents per wave |
+| `parallelism_max_per_repo` | integer | `2` | Max concurrent subagents writing the same repo |
+| `model_routing` | `on` `off` | `on` | Score-based tier routing across haiku/sonnet/opus |
+| `graphify_enabled` | `on` `off` | `off` | Use knowledge-graph queries when `graphify-out/graph.json` exists |
 
 **Model presets:**
 
@@ -476,6 +544,11 @@ Settings live in two places:
 | `/ck:progress` | — | Check build site progress |
 | `/ck:scan` | — | Compare built vs. intended |
 | `/ck:revise` | — | Trace manual fixes back into kits |
+| `/ck:watch` | — | Live dashboard of the autonomous loop |
+| `/ck:resume` | — | Resume after a crash, lock conflict, or interrupt |
+| `/ck:backprop` | — | Trace a bug backwards to the kit that should have caught it |
+| `/ck:review-branch` | — | Two-pass (kit + code) branch review, optionally with Codex |
+| `/ck:setup-tools` | — | Detect MCP servers, plugins, and CLIs available |
 | `/ck:help` | — | Usage guide |
 
 ### CLI
@@ -494,21 +567,34 @@ Settings live in two places:
 ## File Structure
 
 ```
-context/
-├── kits/                     # Domain kits (persist across cycles)
+context/                       # Project artifacts (persist across cycles)
+├── kits/
 │   ├── kit-overview.md
 │   └── kit-{domain}.md
-├── designs/                  # Design system artifacts
+├── designs/
 │   ├── DESIGN.md
 │   └── design-changelog.md
-├── sites/                    # Build sites (one per plan)
+├── sites/
 │   └── build-site-*.md
-├── impl/                     # Implementation tracking
+├── impl/
 │   ├── impl-{domain}.md
 │   ├── impl-review-findings.md
 │   ├── impl-speculative-log.md
 │   └── loop-log.md
-└── refs/                     # Research briefs + raw findings
+└── refs/
+
+.cavekit/                      # Runtime state (machine-managed)
+├── config.json
+├── state.md
+├── .loop.json
+├── .loop.lock
+├── token-ledger.json
+├── task-status.json
+├── capabilities.json
+├── .progress.json
+├── .auto-backprop-pending.json
+├── history/backprop-log.md
+└── tool-cache/
 ```
 
 ---
