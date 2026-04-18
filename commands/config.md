@@ -5,7 +5,8 @@ argument-hint: "[list | preset <expensive|quality|balanced|fast> [--global] | ge
 allowed-tools: ["Bash(${CLAUDE_PLUGIN_ROOT}/scripts/bp-config.sh:*)", "Bash(cat .cavekit/config.json)", "Read(.cavekit/config.json)"]
 ---
 
-> **Note:** `/bp:config` is deprecated and will be removed in a future version. Use `/ck:config` instead.
+**What this does:** Shows or updates the active Cavekit execution preset (reasoning/execution/exploration model assignments) and autonomous-runtime keys (token budgets, parallelism, hook toggles).
+**When to use it:** At any time. `--global` writes to `~/.cavekit/config`; default writes to `.cavekit/config` for the current repo.
 
 # Cavekit Config — Execution Presets + Runtime Keys
 

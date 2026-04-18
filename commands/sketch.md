@@ -4,9 +4,10 @@ description: "Write kits: decompose what you're building into domains with testa
 argument-hint: "[REFS_PATH | --from-code] [--filter PATTERN]"
 ---
 
-> **Note:** `/bp:draft`, `/ck:draft`, `/bp:sketch` are deprecated aliases. Use `/ck:sketch` instead.
+**What this does:** Decomposes your project into domains and writes `context/kits/cavekit-{domain}.md` files with R-numbered requirements and testable acceptance criteria. Implementation-agnostic — describes WHAT, never HOW.
+**When to use it:** First step of every project. Interactive by default; `--from-code` reverse-engineers kits from an existing codebase; passing a refs path generates kits from PRDs/docs.
 
-# Cavekit Draft — Write Kits
+# Cavekit Sketch — Write Kits
 
 This is the first phase of Cavekit. You are writing implementation-agnostic kits that define WHAT to build through collaborative design with the user.
 

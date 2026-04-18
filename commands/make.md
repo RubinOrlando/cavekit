@@ -5,9 +5,10 @@ argument-hint: "[FILE] [--filter PATTERN] [--peer-review] [--max-iterations N] [
 allowed-tools: ["Bash(${CLAUDE_PLUGIN_ROOT}/scripts/setup-build.sh:*)", "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/bp-config.sh:*)", "Bash(node ${CLAUDE_PLUGIN_ROOT}/scripts/cavekit-tools.cjs:*)", "Bash(node ${CLAUDE_PLUGIN_ROOT}/scripts/cavekit-router.cjs:*)", "Bash(git *)"]
 ---
 
-> **Note:** `/bp:build`, `/ck:build`, `/bp:make` are deprecated aliases. Use `/ck:make` instead.
+**What this does:** Runs the autonomous build loop from the build site — parallelizes ready tasks into coherent work packets, validates each against acceptance criteria, merges after every wave, progresses through tiers until all tasks are done.
+**When to use it:** Right after `/ck:map`. Add `--peer-review` to enable Codex tier gates; `--max-iterations N` to cap the loop.
 
-# Cavekit Build — Autonomous Implementation
+# Cavekit Make — Autonomous Implementation
 
 This is the third phase of Cavekit. Execute the setup script:
 
@@ -309,3 +310,5 @@ Then output the completion promise from the ralph prompt.
 - Progress through tiers autonomously — never pause between waves
 - NEVER output completion promise unless ALL tasks are genuinely DONE
 - NEVER mark a task DONE because existing code "looks related" — verify each acceptance criterion
+
+Next: `/ck:check` to run gap analysis and peer review against the kits.

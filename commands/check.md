@@ -4,9 +4,10 @@ description: "Inspect the last loop: gap analysis against kits + peer review cod
 argument-hint: "[--filter PATTERN]"
 ---
 
-> **Note:** `/bp:inspect`, `/ck:inspect`, `/bp:check` are deprecated aliases. Use `/ck:check` instead.
+**What this does:** Post-loop analysis. Two passes: gap analysis against kits + peer review of the code for bugs, security, performance, and quality. Produces a verdict (APPROVE / REVISE / REJECT) and auto-amends kits/site when gaps are found.
+**When to use it:** After `/ck:make` completes (or is stopped). If only the gap pass is needed, `/ck:review --mode gap` is the narrower tool.
 
-# Cavekit Inspect — Post-Loop Analysis
+# Cavekit Check — Post-Loop Analysis
 
 Run this after `/ck:make` completes (or is stopped). It does two things:
 

@@ -4,7 +4,8 @@ description: "Deep research for grounding kits in evidence — current best prac
 argument-hint: "<description> [--depth quick|standard|deep] [--web-only] [--codebase-only]"
 ---
 
-> **Note:** `/bp:research` is deprecated and will be removed in a future version. Use `/ck:research` instead.
+**What this does:** Runs parallel multi-agent research (codebase exploration + web search) and produces a named research brief in `context/refs/` to ground kits in evidence. Dispatches 2–8 agents depending on project size and depth; two-pass synthesizer cross-validates findings and resolves contradictions.
+**When to use it:** Before `/ck:sketch` on novel domains or fast-moving best-practice areas. Also integrated into `/ck:sketch` — it will offer to run research when warranted.
 
 # Cavekit Research — Deep Multi-Agent Research
 

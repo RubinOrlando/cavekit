@@ -4,9 +4,10 @@ description: "Generate a build site from kits — the task dependency graph that
 argument-hint: "[--filter PATTERN]"
 ---
 
-> **Note:** `/bp:architect`, `/ck:architect`, `/bp:map` are deprecated aliases. Use `/ck:map` instead.
+**What this does:** Reads your kits and generates a build site — a dependency-ordered task graph that tells the builder what to build and in what order. No domain plans, no file ownership: just tasks, requirement mappings, and blockers.
+**When to use it:** Right after `/ck:sketch`. If multiple kits exist, use `--filter PATTERN` to scope.
 
-# Cavekit Architect — Generate Build Site
+# Cavekit Map — Generate Build Site
 
 This is the second phase of Cavekit. You read kits and generate a build site — a dependency-ordered task graph that tells the builder what to build and in what order.
 

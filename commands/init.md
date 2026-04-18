@@ -1,14 +1,68 @@
 ---
 name: ck-init
-description: "Bootstrap the context hierarchy and runtime — creates context/, .cavekit/ state dir, detects capabilities, writes .gitignore entries"
-allowed-tools: ["Bash(node ${CLAUDE_PLUGIN_ROOT}/scripts/cavekit-tools.cjs:*)", "Bash(git *)", "Read(*)", "Write(*)", "Edit(*)", "Glob(*)"]
+description: "Bootstrap the context hierarchy and runtime — creates context/, .cavekit/ state dir, detects capabilities, writes .gitignore entries. Use --tools-only to just re-detect available tools."
+argument-hint: "[--tools-only [--summary-only]]"
+allowed-tools: ["Bash(node ${CLAUDE_PLUGIN_ROOT}/scripts/cavekit-tools.cjs:*)", "Bash(cat .cavekit/capabilities.json)", "Bash(git *)", "Read(*)", "Write(*)", "Edit(*)", "Glob(*)"]
 ---
 
-> **Note:** `/bp:init` is deprecated and will be removed in a future version. Use `/ck:init` instead.
+**What this does:** Creates the full context hierarchy AND the autonomous-runtime state directory for a Cavekit project. With `--tools-only`, only re-detects available CLI tools, MCP servers, and plugins.
+**When to use it:** Once at the start of a project. Re-run any time — idempotent. Re-run with `--tools-only` after installing a new tool or when a task fails with "command not found".
 
-# Cavekit Init — Bootstrap Context Hierarchy + Runtime
+## Mode: `--tools-only` (capability discovery only)
 
-Creates the full context hierarchy AND the autonomous-runtime state directory for a Cavekit project. Run once at the start of a project, or re-run safely — it only creates what's missing.
+When `--tools-only` is passed, skip the context-hierarchy setup and only re-run capability discovery:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/cavekit-tools.cjs" discover
+```
+
+This writes `.cavekit/capabilities.json`. Read it back and summarize:
+
+```bash
+cat .cavekit/capabilities.json
+```
+
+Print a short, human-readable table:
+
+```
+═══ Cavekit Capabilities ═══
+
+CLI tools:
+  ✓ git, gh, node, python3, docker
+  ✗ codex, graphify, supabase
+
+MCP servers:
+  (none detected)
+
+Codex peer review: UNAVAILABLE (install `codex` on $PATH to enable /ck:review --codex)
+Knowledge graph:   UNAVAILABLE (run `graphify build .` to enable graph-backed routing)
+```
+
+With `--summary-only`, skip writing the JSON file and only print the summary.
+
+### Recommendations
+
+After the summary, offer a short list of optional upgrades based on what is missing:
+
+- If `codex` is missing: mention the peer-review workflows that would unlock (`/ck:review --codex`, tier gate).
+- If `graphify` is missing: mention the `graphify-integration` skill.
+- If `gh` is missing: mention that `/ck:check` can post gap reports as GitHub issues when `gh` is present.
+
+Do not install anything. Just recommend.
+
+### Critical rules (`--tools-only`)
+
+- Capabilities are advisory, never prescriptive. A missing tool is not an error — it is information for `/ck:sketch` to consider.
+- Do not store credentials. Availability ≠ reachability.
+- The default `/ck:init` path already runs discovery — `--tools-only` is for re-detection.
+
+Then exit without touching `context/` or `.gitignore`.
+
+---
+
+## Default mode — full bootstrap
+
+Creates the full context hierarchy and the runtime state directory.
 
 ## Properties
 
