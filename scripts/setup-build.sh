@@ -45,6 +45,10 @@ OPTIONS:
   --completion-promise '<text>'  Completion phrase (default: "CAVEKIT COMPLETE")
   -h, --help                     Show this help
 
+NOTE:
+  /ck:make runs inline by default (no subagent, no worktree).
+  For parallel worktree subagent execution, use /ck:make-parallel.
+
 EXAMPLES:
   /cavekit build
   /cavekit build context/plans/build-site.md

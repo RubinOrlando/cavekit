@@ -54,20 +54,20 @@ cat > "$MARKETPLACE_DIR/.claude-plugin/marketplace.json" <<EOF
   "owner": { "name": "$(whoami)" },
   "metadata": {
     "description": "Local Cavekit plugin marketplace",
-    "version": "3.0.0"
+    "version": "3.0.1"
   },
   "plugins": [
     {
       "name": "ck",
       "description": "Cavekit framework with skills, commands, agents, and references",
-      "version": "3.0.0",
+      "version": "3.0.1",
       "source": "./ck",
       "author": { "name": "$(whoami)" }
     },
     {
       "name": "bp",
       "description": "[DEPRECATED — use /ck:* instead] Cavekit framework (legacy alias)",
-      "version": "3.0.0",
+      "version": "3.0.1",
       "source": "./bp",
       "author": { "name": "$(whoami)" }
     }
@@ -79,7 +79,7 @@ cat > "$MARKETPLACE_DIR/.claude-plugin/plugin.json" <<EOF
 {
   "name": "cavekit-marketplace",
   "description": "Local Cavekit plugin marketplace",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "plugins": ["ck", "bp"]
 }
 EOF
@@ -175,7 +175,8 @@ printf "\n"
 printf "  ${B}Claude:${R}\n"
 printf "    /ck:sketch                    Draft kits\n"
 printf "    /ck:map                       Generate build site\n"
-printf "    /ck:make                      Build from kits\n"
+printf "    /ck:make                      Build from kits (inline, sequential, safe default)\n"
+printf "    /ck:make-parallel             Opt-in: parallel subagents in isolated worktrees\n"
 printf "    /ck:check                     Inspect the build\n"
 printf "    /ck:review                    Audit branch end-to-end\n"
 printf "    /ck:status                    Check build progress\n"

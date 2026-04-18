@@ -45,8 +45,9 @@ _bp_config_default() {
     tool_cache_ttl_ms) echo "120000" ;;
     test_filter) echo "on" ;;
     progress_tracker) echo "on" ;;
-    parallelism_max_agents) echo "3" ;;
-    parallelism_max_per_repo) echo "2" ;;
+    parallelism_max_agents) echo "1" ;;
+    parallelism_max_per_repo) echo "1" ;;
+    task_builder_isolation) echo "inline" ;;
     model_routing) echo "on" ;;
     graphify_enabled) echo "off" ;;
     *) echo "" ;;
@@ -117,11 +118,16 @@ _bp_config_validate() {
       echo "bp_config_set: invalid value '$value' for '$key' (allowed: on off)" >&2
       return 1
       ;;
+    task_builder_isolation)
+      case "$value" in worktree|inline) return 0 ;; esac
+      echo "bp_config_set: invalid value '$value' for '$key' (allowed: worktree inline)" >&2
+      return 1
+      ;;
     *) return 0 ;;
   esac
 }
 
-_BP_CONFIG_KEYS="bp_model_preset codex_review codex_model codex_effort tier_gate_mode command_gate command_gate_model command_gate_timeout command_gate_allowlist command_gate_blocklist speculative_review speculative_review_timeout caveman_mode caveman_phases session_budget max_iterations task_budget_quick task_budget_standard task_budget_thorough auto_backprop tool_cache tool_cache_ttl_ms test_filter progress_tracker parallelism_max_agents parallelism_max_per_repo model_routing graphify_enabled"
+_BP_CONFIG_KEYS="bp_model_preset codex_review codex_model codex_effort tier_gate_mode command_gate command_gate_model command_gate_timeout command_gate_allowlist command_gate_blocklist speculative_review speculative_review_timeout caveman_mode caveman_phases session_budget max_iterations task_budget_quick task_budget_standard task_budget_thorough auto_backprop tool_cache tool_cache_ttl_ms test_filter progress_tracker parallelism_max_agents parallelism_max_per_repo task_builder_isolation model_routing graphify_enabled"
 
 bp_global_config_path() {
   if [[ -n "${BP_GLOBAL_CONFIG_PATH:-}" ]]; then

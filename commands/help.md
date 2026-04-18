@@ -25,7 +25,8 @@ one-shot:    /ck:ship "<describe your feature>"     # runs all four, no gates
 |---------|-------|-------------|
 | `/ck:sketch` | Draft | Decompose your project into domains; write kits with testable acceptance criteria |
 | `/ck:map` | Architect | Read kits, generate a tiered build site with a task dependency graph |
-| `/ck:make` | Build | Autonomous parallel build loop — ready tasks grouped into packets, validated, merged wave by wave |
+| `/ck:make` | Build | Inline build loop — parent session implements tasks one at a time (no subagent, no worktree). Safe default. |
+| `/ck:make-parallel` | Build (opt-in) | Parallel subagent build loop — fans out `ck:task-builder` subagents in isolated git worktrees. Throughput at the cost of harness-race surface. |
 | `/ck:check` | Inspect | Gap analysis against kits + peer review of the code; produces APPROVE/REVISE/REJECT verdict |
 | `/ck:ship` | End-to-end | One-shot sketch → map → make → check with no user gates. For tiny features and throwaways. |
 
@@ -54,10 +55,13 @@ one-shot:    /ck:ship "<describe your feature>"     # runs all four, no gates
 /ck:map                           # generate build site from all kits
 /ck:map --filter v2               # scope to v2
 
-/ck:make                          # auto-parallel build
+/ck:make                          # inline sequential build (default, no subagent)
 /ck:make --filter v2              # scope
 /ck:make --peer-review            # Codex tier gates
 /ck:make --max-iterations 30      # iteration cap
+
+/ck:make-parallel                 # opt-in: parallel ck:task-builder subagents in worktrees
+/ck:make-parallel --concurrency 4 # set max concurrent packets per wave (default 3)
 
 /ck:check                         # full inspection
 /ck:check --filter v2             # scope

@@ -24,7 +24,7 @@ Before starting inspection:
 
 Use `REASONING_MODEL` explicitly for the delegated surveyor and inspector work below.
 
-If `CAVEMAN_ACTIVE` is `true`, your own output (status updates, summaries, reasoning) should use caveman-speak: drop articles, filler, pleasantries — keep technical terms exact and code blocks unchanged. The structured report tables (coverage matrix, findings with P0/P1/P2/P3) stay in normal format. Inject `CAVEMAN MODE: ON` into ck:surveyor and ck:inspector subagent prompts so their status reports are also compressed.
+If `CAVEMAN_ACTIVE` is `true`, your own output (status updates, summaries) should use caveman-speak: drop articles, filler, pleasantries — keep technical terms exact and code blocks unchanged. Do NOT compress internal reasoning or tool calls (this corrupts dispatch). The structured report tables (coverage matrix, findings with P0/P1/P2/P3) stay in normal format. When injecting `CAVEMAN MODE: ON` into ck:surveyor and ck:inspector subagent prompts, scope it to their prose status reports only — not their reasoning or tool calls.
 
 For internal artifacts (verifier notes, surveyor summaries, inspector
 handoff memos) in a `.cavekit/` project, resolve the machine-to-machine

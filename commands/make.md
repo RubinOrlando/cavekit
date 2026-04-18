@@ -35,8 +35,17 @@ task-builder must follow:
   internal artifacts. Consult `cavekit-tools intensity` when writing
   artifact summaries or handoff memos.
 
-When the stop-hook routes a wave prompt, dispatch `ck:task-builder` subagents
-using the recommended model tier from:
+When the stop-hook routes a wave prompt, the parent session executes the
+wave according to the resolved execution mode (see "Resolve Execution
+Profile" below):
+
+- **Inline mode (`TB_ISOLATION=inline`, default):** the parent session
+  implements each task directly — no subagent dispatch. The router below
+  is not consulted because model selection is whatever the parent session
+  is on.
+- **Subagent mode (`TB_ISOLATION=worktree`, used by `/ck:make-parallel`
+  and by users who explicitly configure it):** dispatch `ck:task-builder`
+  subagents using the recommended model tier from:
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/cavekit-router.cjs" classify-task \
@@ -83,8 +92,18 @@ Before starting waves:
 1. Run `"${CLAUDE_PLUGIN_ROOT}/scripts/bp-config.sh" summary` and report that exact line once.
 2. Run `"${CLAUDE_PLUGIN_ROOT}/scripts/bp-config.sh" model execution` and treat the result as `EXECUTION_MODEL`.
 3. Run `"${CLAUDE_PLUGIN_ROOT}/scripts/bp-config.sh" caveman-active build` and treat the result as `CAVEMAN_ACTIVE` (true/false).
-4. Use that exact `EXECUTION_MODEL` string in every `ck:task-builder` delegation below. Do not hard-code `opus`, `sonnet`, or `haiku` in this command.
-5. If `CAVEMAN_ACTIVE` is `true`, all your own wave logs, iteration summaries, and status reports in this command should use caveman-speak (drop articles, filler, pleasantries — keep technical terms exact, code blocks unchanged). Spec artifacts (kits, build sites, impl tracking field values) stay in normal prose.
+4. Run `"${CLAUDE_PLUGIN_ROOT}/scripts/bp-config.sh" get task_builder_isolation` and treat the result as `TB_ISOLATION` (`inline` or `worktree`). Default is `inline`.
+5. Run `"${CLAUDE_PLUGIN_ROOT}/scripts/bp-config.sh" get parallelism_max_per_repo` and treat the result as `MAX_PARALLEL` (positive integer; default `1`).
+6. Use `EXECUTION_MODEL` in every `ck:task-builder` delegation below (only applies when `TB_ISOLATION=worktree`). Do not hard-code `opus`, `sonnet`, or `haiku` in this command.
+7. If `CAVEMAN_ACTIVE` is `true`, all your own wave logs, iteration summaries, and status reports in this command should use caveman-speak (drop articles, filler, pleasantries — keep technical terms exact, code blocks unchanged). Spec artifacts (kits, build sites, impl tracking field values) stay in normal prose.
+
+**To run with parallel subagents instead of inline**, use `/ck:make-parallel` (a separate command that defaults to `TB_ISOLATION=worktree` and `MAX_PARALLEL=3`).
+
+**Execution mode matrix (after config + flag overrides):**
+- `TB_ISOLATION=inline` and `MAX_PARALLEL=1` (default) — **no subagent is spawned.** The parent session implements each task directly: read context, edit files, run validation, commit, move to the next task. This is the confirmed-stable ralph-loop path — no Agent dispatch, no worktree, no merge. Trade-off: parent session runs under whatever model the user is on, not `EXECUTION_MODEL`.
+- `TB_ISOLATION=worktree` and `MAX_PARALLEL=1` — one `ck:task-builder` subagent per wave, inside an isolated git worktree. Sequential; the parent merges after the packet returns.
+- `TB_ISOLATION=worktree` and `MAX_PARALLEL>1` — up to `MAX_PARALLEL` `ck:task-builder` subagents per wave in isolated worktrees. Opt-in via `--parallel` or config. Can hit Claude-Code-harness worktree races on some builds.
+- `TB_ISOLATION=inline` with `MAX_PARALLEL>1` is unsupported (inline is inherently sequential). Clamp `MAX_PARALLEL` to `1` and log a note.
 
 ## Pre-flight Coverage Check
 
@@ -127,17 +146,35 @@ Once the setup script completes (outputs the ralph prompt), you run the executio
 
    **0 ready tasks** → Check if ALL tasks are done. If yes → completion. If not → report blockage and stop.
 
-   **1 ready task** → Delegate it as a single-task `ck:task-builder` packet using `EXECUTION_MODEL`. This keeps execution model selection explicit even when only one task is ready.
+   **1+ ready tasks** → Partition the frontier into coherent work packets (group tasks that touch the same subsystem/files, split large or file-disjoint work). Then execute packets according to `TB_ISOLATION` and `MAX_PARALLEL`:
 
-   **2+ ready tasks** → Partition the frontier into a small set of coherent work packets, then parallelize those. Optimize for throughput, not raw agent count.
+   ---
 
-   **Build work packets using these rules:**
-   - Group tasks when they touch the same subsystem, cavekit/domain, or expected file set
-   - Group small related tasks when the combined scope is still coherent for one agent
-   - Split large, risky, or file-disjoint tasks into separate packets
-   - Keep ownership clean: each packet should have a clear primary file/module surface
-   - Prefer a few meaningful packets, usually 2-4 concurrent subagents, rather than one agent per task
-   - Prefer delegated execution whenever model selection matters; only keep work inline if you are certain the current parent model already matches `EXECUTION_MODEL`
+   ### Mode A — Inline (default: `TB_ISOLATION=inline`, `MAX_PARALLEL=1`)
+
+   **No subagent is spawned.** The parent session does the work directly. For each packet, in order (one at a time):
+
+   1. Read the task entry from the build site, its cavekit requirements, acceptance criteria, and `context/impl/dead-ends.md`.
+   2. If the packet contains UI tasks, read `DESIGN.md` and the `ck:ui-craft` skill.
+   3. Implement the packet: edit files, write tests, run validation (build + tests).
+   4. Commit on the current branch with a message naming the packet's primary task: `T-{ID}: {what was done}`. Do NOT push.
+   5. Log one line in wave status:
+      ```
+      T-{ID}: {title} — COMPLETE | PARTIAL | BLOCKED. Files: {n}. Build {P/F}, Tests {P/F}.
+      ```
+   6. Move to the next packet. No merge, no worktree, no Agent dispatch.
+
+   Inline mode runs under whatever model the parent session is using. It does **not** honor `EXECUTION_MODEL` — if the user needs a specific model for task implementation, they must switch to worktree mode (below) or set the parent session to that model.
+
+   ---
+
+   ### Mode B — Subagent (`TB_ISOLATION=worktree`, any `MAX_PARALLEL`)
+
+   Dispatch `ck:task-builder` subagents. One packet per subagent. Each subagent runs in an isolated git worktree on a fresh branch; the parent merges after the packet returns.
+
+   **Dispatch rule by `MAX_PARALLEL`:**
+   - `MAX_PARALLEL=1` → emit one Agent call, wait for it to return, emit the next (sequential).
+   - `MAX_PARALLEL>1` → emit up to `MAX_PARALLEL` Agent calls in a single assistant message (parallel). If the frontier has more packets than `MAX_PARALLEL`, pick the top-N highest-priority packets and defer the rest to the next wave.
 
    ```
    Agent(
@@ -163,7 +200,7 @@ Once the setup script completes (outputs the ralph prompt), you run the executio
    DEAD ENDS TO AVOID:
    {paste relevant dead ends, or 'None'}
 
-   CAVEMAN MODE: {if CAVEMAN_ACTIVE is true, include: 'ON — all status reports, logs, and reasoning use caveman-speak: drop articles/filler/pleasantries, keep technical terms exact, code blocks unchanged. Pattern: [thing] [action] [reason]. Do NOT apply caveman to code, git commits, or structured output fields.' If CAVEMAN_ACTIVE is false, include: 'OFF'}
+   CAVEMAN MODE: {if CAVEMAN_ACTIVE is true, include: 'ON — apply caveman-speak ONLY to your final status report prose (summaries, issue notes). Drop articles/filler/pleasantries; keep technical terms exact. Pattern: [thing] [action] [reason]. Do NOT apply caveman to: (a) internal reasoning or thinking, (b) tool calls or tool arguments, (c) code, (d) git commit messages, (e) structured output fields (TASK RESULT keys and values like file lists). Think and call tools normally — compression applies to prose only.' If CAVEMAN_ACTIVE is false, include: 'OFF'}
 
    INSTRUCTIONS:
    1. Read each listed cavekit requirement for full context
@@ -181,14 +218,17 @@ Once the setup script completes (outputs the ralph prompt), you run the executio
    )
    ```
 
-   Dispatch all packets for the wave in a single message with multiple Agent tool calls.
+   **Harness error recovery** (parallel mode, `MAX_PARALLEL>1`): if an Agent call returns `[Tool result missing due to internal error]`, no `agentId`, or otherwise reports a harness-level failure with no body, do NOT try to merge or clean up a worktree for it — there is none. Re-dispatch that packet **once sequentially** (on its own in a fresh message), then proceed. If the retry also errors, log the packet's tasks as BLOCKED with the harness error and move on. Do not retry a third time.
+
+   ---
 
 5. **After wave completes**:
-   - For any delegated wave (single-agent or parallel), merge and clean up each subagent **one at a time**:
+   - **If `TB_ISOLATION=worktree`**: merge and clean up each subagent **one at a time**:
      1. `git merge <branch> --no-edit` — merge the subagent's branch
      2. `git worktree remove <worktree-path>` — remove the worktree directory (required before branch can be deleted)
      3. `git branch -D <branch>` — delete the branch
      Skip all three steps if the subagent reported no changes (Claude Code auto-cleans worktrees with no changes). If a merge conflicts, clean up the worktree (`git worktree remove <worktree-path> --force`) before reporting the conflict.
+   - **If `TB_ISOLATION=inline`**: no merge or worktree cleanup — the parent session's commits already landed on the current branch. Optionally run `git log --oneline {TIER_START_REF}..HEAD` to confirm the expected task commits are present.
    - Update `context/impl/impl-*.md` with status for each completed task
    - Record any dead ends in `context/impl/dead-ends.md`
    - Update `context/impl/loop-log.md` with an iteration entry. **If `CAVEMAN_ACTIVE` is true**, compress the loop-log entry to a dense one-liner per task using caveman-speak. Instead of verbose iteration summaries, write compact entries like:

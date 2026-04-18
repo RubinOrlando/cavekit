@@ -47,6 +47,7 @@ If the arguments do not match one of those forms, show this usage summary and st
    - `auto_backprop`
    - `hooks_config.{tool_cache, tool_cache_ttl_ms, test_filter, progress_tracker}`
    - `parallelism.{max_concurrent_agents, max_concurrent_per_repo}`
+   - `task_builder_isolation` (worktree / inline)
    - `model_routing.enabled`
    - `graphify.enabled`
 
@@ -83,7 +84,8 @@ Valid keys (non-exhaustive — see `bp-config.sh` for the full list):
 | `tool_cache_ttl_ms` | positive integer | Cache TTL |
 | `test_filter` | on / off | Condense test output around failures |
 | `progress_tracker` | on / off | Write `.cavekit/.progress.json` |
-| `parallelism_max_agents` / `_max_per_repo` | positive integer | Subagent concurrency caps |
+| `parallelism_max_agents` / `_max_per_repo` | positive integer (default `1`) | Subagent concurrency caps. Default `1` = sequential ralph-loop dispatch. Bump to opt in to parallel task-builder waves (requires `task_builder_isolation=worktree`). |
+| `task_builder_isolation` | worktree / inline (default `inline`) | How `/ck:make` dispatches task-builder subagents. `inline` (default) runs them in the parent repo — no worktree, no per-wave merge/cleanup — so commits land directly on the current branch. `worktree` runs each packet in an isolated git worktree and merges after the packet returns; required for `parallelism_max_per_repo > 1`. |
 | `model_routing` | on / off | Score-based tier routing |
 | `graphify_enabled` | on / off | Knowledge-graph queries |
 
